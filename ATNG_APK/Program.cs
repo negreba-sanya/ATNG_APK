@@ -1042,13 +1042,15 @@ namespace ATNG_APK
         {
             string answ = "";
             List<string[]> hrefTags = new List<string[]>();
-            var client_APK = new WebClient();
-            string html = client_APK.DownloadString("https://www.achtng.ru/staff");
+            var client = new WebClient();
+            client.Encoding = Encoding.UTF8;
+            string html = client.DownloadString("https://www.achtng.ru/staff");
+            
             var parser = new HtmlParser();
             var document = parser.ParseDocument(html);
             foreach (IElement element in document.GetElementsByClassName("staffer-staff-title"))
             {
-                string[] a = Convert.ToString(element.TextContent).Replace("\t", "").Replace("\n", "").Split(' ');
+                string[] a = Convert.ToString(element.TextContent).Replace("\t", "").Replace("\n", "").Split(' ');                
                 hrefTags.Add(a);
             }
             foreach (string[] i in hrefTags)
