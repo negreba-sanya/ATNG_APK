@@ -19,7 +19,9 @@ namespace ATNG_APK
 {
     class Program
     {
-        
+        private static string token_ANTG { get; set; } = "2126625757:AAE4R80e8KjkBZAW2Es65r823bvlT1P2Rgg";
+        private static string token_APK { get; set; } = "2089931110:AAGXNM4ofcoIMtmw6hNZfLiTO3Yq9RBjgXQ";
+        private static string token_USD { get; set; } = "2060445393:AAEqusp99mwTPZEfzlCplgS1NIphAEu6InQ";
 
         public static string url_ATNG;
         public static string save_path_ATNG;
@@ -31,6 +33,7 @@ namespace ATNG_APK
 
         private static TelegramBotClient client_ATNG;
         private static TelegramBotClient client_APK;
+        private static TelegramBotClient client_USD;
 
         public static string mode = "none";
 
@@ -44,15 +47,82 @@ namespace ATNG_APK
             client_APK.StartReceiving();
             client_APK.OnMessage += MessageAPK;
 
+
+            client_USD = new TelegramBotClient(token_USD);
+            client_USD.StartReceiving();
+            client_USD.OnMessage += MessageUSD;
+
             Console.ReadLine();
             client_APK.StopReceiving();
             client_ATNG.StopReceiving();
+            client_USD.StopReceiving();
+        }
+
+        private static async void MessageUSD(object sender, MessageEventArgs e)
+        {
+            var msg = e.Message;
+            Console.WriteLine(/*msg.Chat.FirstName + " " + msg.Chat.LastName + " " + msg.Chat.Username + " " + */msg.Chat.Id + " (USD)");
+            var keyboardStart = new ReplyKeyboardMarkup
+            {
+                Keyboard = new[] {
+                                                new[]
+                                                {
+                                                    new KeyboardButton("Продажа"),
+                                                    new KeyboardButton("Покупка")
+                                                },
+                                            },
+                ResizeKeyboard = true
+            };
+
+            List<string[]> hrefTags = new List<string[]>();
+            var client = new WebClient();
+            client.Encoding = Encoding.UTF8;
+            string html = client.DownloadString("https://mainfin.ru/currency/usd/nazarovo");
+
+            var parser = new HtmlParser();
+            var document = parser.ParseDocument(html);
+            foreach (IElement element in document.GetElementsByClassName("float-convert__btn"))
+            {
+                string[] a = Convert.ToString(element.TextContent).Replace("\t", "").Replace("\n", "").Split(' ');
+                hrefTags.Add(a);
+            }
+
+            switch (msg.Text)
+            {
+                case "/start":
+                    try
+                    {
+                        await client_USD.SendTextMessageAsync(chatId: msg.Chat.Id, text: "Выберите команду:", replyMarkup: keyboardStart);
+                    }
+                    catch
+                    {
+
+                    }
+                    break;
+                case "Покупка":
+                    await client_USD.SendTextMessageAsync(chatId: msg.Chat.Id, text: "Вы можете купить доллары по цене: " + hrefTags[1][0], replyMarkup: keyboardStart);
+                    string buy = hrefTags[1][0];
+                    float buy_f = 73;
+                    if (Convert.ToSingle(buy.Replace('.',',')) < buy_f)
+                    {
+                        await client_USD.SendTextMessageAsync(chatId: msg.Chat.Id, text: "Выгодный курс!", replyMarkup: keyboardStart);
+                    }
+
+                    break;
+                case "Продажа":
+                    await client_USD.SendTextMessageAsync(chatId: msg.Chat.Id, text: "Вы можете сдать доллары по цене: " + hrefTags[0][0], replyMarkup: keyboardStart);
+                    
+                    break;
+            }
+            
+            
         }
 
         private async static void MessageAPK(object sender, MessageEventArgs e)
-        {
+        {            
             url_APK = "";
             var msg = e.Message;
+            Console.WriteLine(/*msg.Chat.FirstName + " " + msg.Chat.LastName + " " + msg.Chat.Username + " " + */msg.Chat.Id + " (АПК)");
             if (msg != null)
             {
 
@@ -593,6 +663,7 @@ namespace ATNG_APK
         {
             string answer;
             var msg = e.Message;
+            Console.WriteLine(/*msg.Chat.FirstName + " " + msg.Chat.LastName + " " + msg.Chat.Username + " " + */msg.Chat.Id + " (АТНГ)");
 
             if (msg != null)
             {
@@ -1044,11 +1115,11 @@ namespace ATNG_APK
             List<string[]> hrefTags = new List<string[]>();
             var client = new WebClient();
             client.Encoding = Encoding.UTF8;
-            string html = client.DownloadString("https://www.achtng.ru/staff");
+            string html = client.DownloadString("https://mainfin.ru/currency/usd/nazarovo");
             
             var parser = new HtmlParser();
             var document = parser.ParseDocument(html);
-            foreach (IElement element in document.GetElementsByClassName("staffer-staff-title"))
+            foreach (IElement element in document.GetElementsByClassName("wrapper pos-rel ovf-vis"))
             {
                 string[] a = Convert.ToString(element.TextContent).Replace("\t", "").Replace("\n", "").Split(' ');                
                 hrefTags.Add(a);
